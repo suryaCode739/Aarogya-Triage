@@ -491,11 +491,11 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           </button>
 
           <button
-            onClick={handleGenerateReferral}
+            onClick={handleGenerateHandoff}
             className="px-3.5 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
           >
             <FileText className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Generate Referral Draft</span>
+            <span>Generate Handoff Summary</span>
           </button>
         </div>
       </div>

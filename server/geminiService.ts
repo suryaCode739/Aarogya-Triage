@@ -737,7 +737,7 @@ Generate a concise handoff draft with the following JSON structure:
     const res = JSON.parse(textOutput);
 
     return {
-      referralId: \`HANDOFF-\${Date.now()}\`,
+      referralId: `HANDOFF-${Date.now()}`,
       generatedAt: new Date().toISOString(),
       facilityFrom: caseData.facility || 'Unknown Facility',
       facilityTo: 'Receiving Facility / Specialist',
@@ -755,6 +755,6 @@ Generate a concise handoff draft with the following JSON structure:
     };
   } catch (err: any) {
     console.error('NIM handoff summary generation error:', err);
-    throw new Error(\`Handoff generation failed: \${err.message || 'Upstream service error'}\`);
+    throw new Error(`Handoff generation failed: ${err.message || 'Upstream service error'}`);
   }
 }

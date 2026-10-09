@@ -8,6 +8,7 @@ import {
   transcribeAudioOnly,
   processDocumentOCR,
   generateReferralDraftNote,
+  generateHandoffSummary,
 } from './geminiService.js';
 import { evaluatePatientCaseSafety } from './safetyEngine.js';
 import { PatientCase, UserRole, SupportedLanguage } from '../src/types/index.js';
@@ -561,18 +562,10 @@ app.post('/api/cases/:id/generate-handoff', async (req, res) => {
        return res.json({ draft: existing.referral_draft });
     }
 
-    const { generateHandoffSummary } = await import('./geminiService.js');
     const draft = await generateHandoffSummary(existing);
     
     existing.referral_draft = draft;
-    store.updateCase(existing.id, existing);
-    
-    store.addAuditLog({
-      caseId: existing.id,
-      userRole: 'REVIEWER',
-      action: 'HANDOFF_SUMMARY_GENERATED',
-      details: 'AI-assisted handoff summary drafted successfully using available evidence.',
-    });
+    store.saveCase(existing, 'REVIEWER', 'AI-assisted handoff summary drafted successfully using available evidence.');
     
     res.json({ draft });
   } catch (err: any) {

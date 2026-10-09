@@ -1,3 +1,4 @@
+import { GoogleGenAI } from '@google/genai';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import OpenAI, { toFile } from 'openai';
@@ -160,7 +161,7 @@ You MUST return ONLY a valid JSON object matching this schema. Do not include ma
   }
 }
 
-export async function processMultimodalAudio(
+export async function processMultimodalAudio_OLD(
   base64Audio: string,
   mimeType: string,
   facilityLanguage: SupportedLanguage = 'en'
@@ -232,7 +233,7 @@ Format JSON:
   }
 }
 
-export async function transcribeAudioOnly(
+export async function transcribeAudioOnly_OLD(
   base64Audio: string,
   mimeType: string
 ): Promise<{ transcript: string; detectedLanguage?: string; translation?: string }> {
@@ -736,7 +737,7 @@ Generate a concise handoff draft with the following JSON structure:
     facilityTo: 'Receiving Facility / Specialist',
     patientId: caseData.patient?.syntheticName || 'Unknown Patient',
     presentingComplaint: caseData.chief_complaint || 'Unspecified complaint',
-    relevantSymptoms: caseData.symptoms.map(s => `${s.name} (${s.severity})`),
+    relevantSymptoms: caseData.symptoms?.map(s => `${s.name} (${s.severity})`) || [],
     timelineSummary: caseData.timeline?.map(t => `${t.timeframe}: ${t.description}`).join(' -> ') || 'No timeline recorded',
     vitalsSummary: caseData.vitals ? `Temp: ${caseData.vitals.temperature?.value || 'N/A'}, BP: ${caseData.vitals.blood_pressure?.systolic || 'N/A'}/${caseData.vitals.blood_pressure?.diastolic || 'N/A'}` : 'No vitals',
     investigationsSummary: caseData.extracted_labs?.map(l => `${l.test}: ${l.value} ${l.unit}`).join(', ') || 'No labs attached',
@@ -778,5 +779,122 @@ Generate a concise handoff draft with the following JSON structure:
   } catch (err: any) {
     console.warn('NIM handoff summary API failed, using deterministic fallback draft. Error:', err.message);
     return fallbackDraft;
+  }
+}
+
+
+// Initialize Gemini Client safely
+// The key is never exposed to the frontend; it only exists on this Node server runtime.
+let genai: GoogleGenAI | null = null;
+if (process.env.GEMINI_API_KEY) {
+  genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+}
+
+export async function processMultimodalAudio(
+  base64Audio: string,
+  mimeType: string,
+  facilityLanguage: SupportedLanguage = 'en'
+): Promise<{
+  originalTranscript: string;
+  detectedLanguage: string;
+  translatedText: string;
+  confidence: 'HIGH' | 'MEDIUM' | 'LOW';
+}> {
+  if (!base64Audio || base64Audio.trim() === '') {
+    throw new Error('Empty audio payload received.');
+  }
+
+  if (!genai) {
+    throw new Error('Server configuration error: GEMINI_API_KEY not configured. Audio transcription requires Gemini.');
+  }
+
+  try {
+    const promptText = `
+    The following is a medical/triage audio recording from a patient.
+    Please provide:
+    1. The verbatim native transcript.
+    2. Identify the language spoken.
+    3. A high accuracy factual English translation for institutional clinical triage.
+    Format JSON:
+    {
+      "transcript": "Verbatim transcript in native language",
+      "language": "Detected language name",
+      "translation": "Factual English translation",
+      "confidence": "HIGH"
+    }
+    `;
+
+    const response = await genai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: promptText },
+            { inlineData: { mimeType: mimeType || 'audio/webm', data: base64Audio } }
+          ]
+        }
+      ],
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+
+    const textOutput = response.text || '{}';
+    const res = JSON.parse(textOutput);
+    
+    if (!res.transcript || res.transcript.trim() === '') {
+       throw new Error('Model returned an empty transcript.');
+    }
+
+    return {
+      originalTranscript: res.transcript,
+      detectedLanguage: res.language || 'Auto-detected',
+      translatedText: res.translation || res.transcript || '',
+      confidence: res.confidence || 'HIGH',
+    };
+  } catch (err: any) {
+    console.error('Gemini multimodal audio processing error:', err);
+    throw new Error(`Audio transcription failed: ${err.message || 'Upstream service error'}`);
+  }
+}
+
+export async function transcribeAudioOnly(
+  base64Audio: string,
+  mimeType: string
+): Promise<{ transcript: string; detectedLanguage?: string; translation?: string }> {
+  if (!base64Audio || base64Audio.trim() === '') {
+    throw new Error('Empty audio payload received.');
+  }
+
+  if (!genai) {
+    throw new Error('Server configuration error: GEMINI_API_KEY not configured. Audio transcription requires Gemini.');
+  }
+
+  try {
+    const response = await genai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: 'Please transcribe the following audio verbatim.' },
+            { inlineData: { mimeType: mimeType || 'audio/webm', data: base64Audio } }
+          ]
+        }
+      ]
+    });
+
+    const text = response.text;
+    if (!text || text.trim() === '') {
+      throw new Error('Model returned an empty response.');
+    }
+
+    return {
+      transcript: text.trim(),
+    };
+  } catch (err: any) {
+    console.error('Gemini transcribe failed:', err);
+    throw new Error(`Audio transcription failed: ${err.message || 'Upstream service error'}`);
   }
 }

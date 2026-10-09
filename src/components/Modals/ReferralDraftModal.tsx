@@ -34,7 +34,7 @@ export const ReferralDraftModal: React.FC<ReferralDraftModalProps> = ({
 
   const handleCopy = () => {
     const text = `
-INTER-FACILITY HEALTHCARE REFERRAL SUMMARY
+PATIENT SAFETY & HANDOFF INTELLIGENCE SUMMARY
 =========================================
 Referral Ref: ${referral.referralId}
 Date: ${new Date(referral.generatedAt).toLocaleString()}
@@ -98,16 +98,16 @@ DISCLAIMER: Advisory / Triage Support Only — Final assessment must be performe
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">Inter-Facility Referral Note Draft</h3>
+                <h3 className="text-base font-bold text-white">Patient Safety & Handoff Intelligence Summary</h3>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                   isApproved
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                 }`}>
-                  {isApproved ? 'Approved by Medical Officer' : 'Draft Advisory Note'}
+                  {isApproved ? 'Approved by Medical Officer' : 'AI-Assisted Draft Requiring Verification'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Prepared for Sub-Divisional / District Hospital Handover</p>
+              <p className="text-xs text-slate-400">Chronological evidence-linked summary for clinical handover</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

@@ -694,3 +694,67 @@ function mapGeminiResponseToOutput(parsed: any, originalRaw: string): Extraction
     suggested_focus: parsed.suggested_focus || 'Physical vitals and clinician review recommended.',
   };
 }
+
+export async function generateHandoffSummary(caseData: Partial<PatientCase>): Promise<ReferralDraft> {
+  if (!apiKey || apiKey === 'MY_NIM_API_KEY') {
+    throw new Error('Server configuration error: NIM API credentials not available.');
+  }
+
+  const promptText = `
+You are an expert clinical AI assistant. Your task is to generate a Patient Safety & Handoff Intelligence summary based ONLY on the provided verified case data.
+Do NOT fabricate any information, timelines, vitals, or symptoms. If information is missing, explicitly state "Unknown" or "Not assessed".
+Never diagnose, prescribe, or declare a patient safe.
+
+Case Data Provided:
+- Complaint: ${caseData.chief_complaint || 'Unknown'}
+- Symptoms: ${JSON.stringify(caseData.symptoms || [])}
+- Vitals: ${JSON.stringify(caseData.vitals || {})}
+- Missing Info: ${JSON.stringify(caseData.missing_information || [])}
+- Safety Flags: ${JSON.stringify(caseData.safety_flags || [])}
+
+Generate a concise handoff draft with the following JSON structure:
+{
+  "presentingComplaint": "Summary of complaint",
+  "relevantSymptoms": ["symptom 1", "symptom 2"],
+  "timelineSummary": "Chronological progression",
+  "vitalsSummary": "Overview of available vitals, noting missing ones",
+  "investigationsSummary": "Overview of lab reports/OCR, noting unverified status",
+  "safetySignals": ["Signal 1 with evidence", "Signal 2"],
+  "missingInformation": ["Missing vital X", "Missing duration for Y"],
+  "reasonForReferral": "Synthesized reason based on safety flags and presentation"
+}
+`;
+
+  try {
+    const response = await ai.chat.completions.create({
+      model: NIM_TEXT_MODEL,
+      messages: [{ role: 'user', content: promptText }],
+      response_format: { type: 'json_object' },
+      max_tokens: 1500,
+    });
+
+    const textOutput = response.choices[0]?.message?.content || '{}';
+    const res = JSON.parse(textOutput);
+
+    return {
+      referralId: \`HANDOFF-\${Date.now()}\`,
+      generatedAt: new Date().toISOString(),
+      facilityFrom: caseData.facility || 'Unknown Facility',
+      facilityTo: 'Receiving Facility / Specialist',
+      patientId: caseData.patient?.syntheticName || 'Unknown Patient',
+      presentingComplaint: res.presentingComplaint || caseData.chief_complaint || '',
+      relevantSymptoms: res.relevantSymptoms || [],
+      timelineSummary: res.timelineSummary || '',
+      vitalsSummary: res.vitalsSummary || '',
+      investigationsSummary: res.investigationsSummary || '',
+      safetySignals: res.safetySignals || [],
+      missingInformation: res.missingInformation || [],
+      reasonForReferral: res.reasonForReferral || '',
+      supportingDocuments: [],
+      status: 'DRAFT',
+    };
+  } catch (err: any) {
+    console.error('NIM handoff summary generation error:', err);
+    throw new Error(\`Handoff generation failed: \${err.message || 'Upstream service error'}\`);
+  }
+}

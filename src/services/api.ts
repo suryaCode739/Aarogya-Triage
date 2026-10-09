@@ -60,6 +60,20 @@ export const api = {
     return data.case;
   },
 
+  async generateHandoffSummary(id: string, forceRegenerate = false): Promise<ReferralDraft> {
+    const res = await fetch(`/api/cases/${id}/generate-handoff`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ forceRegenerate }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to generate handoff summary');
+    }
+    const data = await res.json();
+    return data.draft;
+  },
+
   async processIntake(
     id: string,
     payload: {

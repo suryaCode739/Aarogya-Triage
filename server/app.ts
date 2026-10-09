@@ -549,5 +549,37 @@ app.post('/api/demo/seed', (req, res) => {
   }
 });
 
+// 15. Generate Handoff Summary
+app.post('/api/cases/:id/generate-handoff', async (req, res) => {
+  try {
+    const existing = store.getCaseById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Case not found' });
+    
+    // Check if handoff already exists to avoid unnecessary calls unless requested
+    const forceRegenerate = req.body?.forceRegenerate === true;
+    if (existing.referral_draft && !forceRegenerate) {
+       return res.json({ draft: existing.referral_draft });
+    }
+
+    const { generateHandoffSummary } = await import('./geminiService.js');
+    const draft = await generateHandoffSummary(existing);
+    
+    existing.referral_draft = draft;
+    store.updateCase(existing.id, existing);
+    
+    store.addAuditLog({
+      caseId: existing.id,
+      userRole: 'REVIEWER',
+      action: 'HANDOFF_SUMMARY_GENERATED',
+      details: 'AI-assisted handoff summary drafted successfully using available evidence.',
+    });
+    
+    res.json({ draft });
+  } catch (err: any) {
+    console.error('Handoff API error:', err);
+    res.status(500).json({ error: err.message || 'Failed to generate handoff summary' });
+  }
+});
+
 // Export the Express app for Vercel Serverless
 export default app;

@@ -451,14 +451,15 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
     }
   };
 
-  // Generate Referral Draft
-  const handleGenerateReferral = async () => {
+  // Generate Handoff Summary
+  const handleGenerateHandoff = async () => {
     try {
-      const referralDraft = await api.generateReferral(patientCase.id);
-      setCurrentReferral(referralDraft);
+      const draft = await api.generateHandoffSummary(patientCase.id, true);
+      setCurrentReferral(draft);
       setReferralModalOpen(true);
     } catch (err) {
-      console.error('Failed to generate referral draft:', err);
+      console.error('Failed to generate handoff summary:', err);
+      setTranscribeError('Failed to generate AI Handoff Summary. Check connection.');
     }
   };
 
@@ -635,9 +636,9 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <History className="w-4 h-4 text-teal-400" />
-              <h3 className="text-sm font-bold text-white">Immutable Institutional Audit Trail for Case {patientCase.id}</h3>
+              <h3 className="text-sm font-bold text-white">Patient Timeline & Audit History (Case {patientCase.id})</h3>
             </div>
-            <span className="text-[11px] text-slate-400 font-mono">{caseAuditLogs.length} events logged</span>
+            <span className="text-[11px] text-slate-400 font-mono">{caseAuditLogs.length} events</span>
           </div>
 
           <div className="divide-y divide-slate-800 max-h-56 overflow-y-auto font-mono text-[11px]">
@@ -1317,11 +1318,11 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                   </button>
 
                   <button
-                    onClick={handleGenerateReferral}
+                    onClick={handleGenerateHandoff}
                     className="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition"
                   >
                     <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Referral Slip</span>
+                    <span>Generate Handoff Summary</span>
                   </button>
                 </div>
               </div>

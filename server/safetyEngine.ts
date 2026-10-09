@@ -290,8 +290,14 @@ export function evaluatePatientCaseSafety(patientCase: Partial<PatientCase>): Ev
   if (!vitals.blood_pressure || vitals.blood_pressure.systolic === null || vitals.blood_pressure.systolic === undefined) {
     missing.push('Blood pressure not measured / provided');
   }
+  if (!vitals.heart_rate || vitals.heart_rate.value === null || vitals.heart_rate.value === undefined) {
+    missing.push('Heart rate not recorded');
+  }
   if (!vitals.spo2 || vitals.spo2.value === null || vitals.spo2.value === undefined) {
     missing.push('Pulse oximetry (SpO2) not recorded');
+  }
+  if (!vitals.respiratory_rate || vitals.respiratory_rate.value === null || vitals.respiratory_rate.value === undefined) {
+    missing.push('Respiratory rate not recorded');
   }
   if (!patientCase.medications || patientCase.medications.length === 0) {
     missing.push('Current medication history not specified');

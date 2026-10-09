@@ -38,6 +38,7 @@ import { api } from '../../services/api';
 import { WhyFlaggedModal } from '../Modals/WhyFlaggedModal';
 import { ReferralDraftModal } from '../Modals/ReferralDraftModal';
 import { ContradictionModal } from '../Modals/ContradictionModal';
+import { VitalsCollectionPanel } from './VitalsCollectionPanel';
 import { useConnectivity } from '../../context/ConnectivityContext';
 import {
   offlineAudioStorage,
@@ -328,6 +329,42 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
       showFeedback('Clinical summary and reviewer notes saved successfully.');
     } catch (err) {
       console.error('Failed to save summary:', err);
+    }
+  };
+
+  const handleUpdateVitals = async (newVitals: Partial<PatientCase['vitals']>) => {
+    try {
+      const mergedVitals = { ...patientCase.vitals, ...newVitals };
+      
+      if (!effectiveOnlineStatus) {
+        const updated: PatientCase = {
+          ...patientCase,
+          vitals: mergedVitals,
+          updatedAt: new Date().toISOString(),
+        };
+        await offlineAuditStorage.recordAuditEvent({
+          caseId: patientCase.id,
+          action: 'VITALS_COLLECTED_OFFLINE',
+          details: 'Healthcare reviewer collected missing vitals while offline.',
+          userRole: 'REVIEWER',
+          actorId: 'DR_MED_OFFICER',
+          origin: 'OFFLINE',
+          syncStatus: 'PENDING',
+        });
+        onCaseUpdated(updated);
+        showFeedback('Vitals saved offline. Event queued.');
+        return;
+      }
+
+      const updated = await api.updateCase(patientCase.id, {
+        vitals: mergedVitals,
+        actorRole: 'REVIEWER',
+        actionDesc: 'Healthcare reviewer collected and recorded missing vitals',
+      });
+      onCaseUpdated(updated);
+      showFeedback('Vitals successfully collected and saved.');
+    } catch (err: any) {
+      console.error('Failed to update vitals:', err);
     }
   };
 
@@ -805,6 +842,11 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
               <Activity className="w-3.5 h-3.5 text-teal-400" />
               <span>3. Recorded Vitals & Point-of-Care Measurements</span>
             </h3>
+
+            <VitalsCollectionPanel 
+              patientCase={patientCase} 
+              onUpdateVitals={handleUpdateVitals} 
+            />
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
               {/* Temperature */}

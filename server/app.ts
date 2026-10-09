@@ -142,6 +142,13 @@ app.put('/api/cases/:id', (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
+    // Re-evaluate safety rules after manual updates
+    const safety = evaluatePatientCaseSafety(updatedCase);
+    updatedCase.safety_flags = safety.safetyFlags;
+    updatedCase.contradictions = safety.contradictions;
+    updatedCase.missing_information = safety.missingInformation;
+    updatedCase.review_priority = safety.recommendedPriority;
+
     const saved = store.saveCase(updatedCase, actorRole, updates.actionDesc || 'Reviewer modified clinical triage details');
     res.json({ case: saved });
   } catch (err: any) {

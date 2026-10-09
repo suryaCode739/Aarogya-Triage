@@ -204,7 +204,16 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
             try {
               const res = await api.transcribeAudio(base64Data, 'audio/webm');
               if (res.transcript) {
-                setNarrativeText(res.transcript);
+                if (narrativeText.trim().length > 0 && narrativeText !== res.transcript) {
+                  const confirmOverwrite = window.confirm('Existing text found. Do you want to overwrite it with the transcription? Click Cancel to append instead.');
+                  if (confirmOverwrite) {
+                    setNarrativeText(res.transcript);
+                  } else {
+                    setNarrativeText((prev) => prev + '\n\n' + res.transcript);
+                  }
+                } else {
+                  setNarrativeText(res.transcript);
+                }
               }
             } catch (e: any) {
               console.warn('Real-time audio transcription error:', e);
@@ -269,7 +278,16 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
 
       const res = await api.transcribeAudio(b64ToTranscribe, mimeToTranscribe);
       if (res.transcript) {
-        setNarrativeText(res.transcript);
+        if (narrativeText.trim().length > 0 && narrativeText !== res.transcript) {
+          const confirmOverwrite = window.confirm('Existing text found. Do you want to overwrite it with the transcription? Click Cancel to append instead.');
+          if (confirmOverwrite) {
+            setNarrativeText(res.transcript);
+          } else {
+            setNarrativeText((prev) => prev + '\n\n' + res.transcript);
+          }
+        } else {
+          setNarrativeText(res.transcript);
+        }
         setOfflineVoiceNotice(null);
       }
     } catch (e: any) {

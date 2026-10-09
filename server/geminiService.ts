@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 import OpenAI, { toFile } from 'openai';
+import { GoogleGenAI } from '@google/genai';
 import {
   PatientCase,
   Symptom,
@@ -21,6 +22,9 @@ const ai = new OpenAI({
 const NIM_TEXT_MODEL = process.env.NIM_TEXT_MODEL || 'meta/llama-3.1-70b-instruct';
 const NIM_VISION_MODEL = process.env.NIM_VISION_MODEL || 'meta/llama-3.2-90b-vision-instruct';
 const NIM_AUDIO_MODEL = process.env.NIM_AUDIO_MODEL || 'openai/whisper-large-v3';
+
+const geminiApiKey = process.env.GEMINI_API_KEY || apiKey;
+const geminiAi = geminiApiKey && geminiApiKey !== 'MY_GEMINI_API_KEY' ? new GoogleGenAI({ apiKey: geminiApiKey }) : null;
 
 const SYSTEM_HEALTHCARE_POLICY = `
 SYSTEM ROLE:
@@ -167,75 +171,67 @@ export async function processMultimodalAudio(
   translatedText: string;
   confidence: 'HIGH' | 'MEDIUM' | 'LOW';
 }> {
-  if (!apiKey || apiKey === 'MY_GEMINI_API_KEY' || apiKey === 'MY_NIM_API_KEY') {
-    return {
-      originalTranscript: 'ରୋଗୀଙ୍କୁ ୩ ଦିନ ହେଲା ପ୍ରବଳ ଜ୍ୱର, ମୁଣ୍ଡବିନ୍ଧା ଏବଂ ବାନ୍ତି ହେଉଛି। (Sample Odia Voice transcript)',
-      detectedLanguage: 'Odia (ଓଡ଼ିଆ)',
-      translatedText: 'Patient reports high fever for 3 days, severe headache, and vomiting episodes.',
-      confidence: 'HIGH',
-    };
+  if (!base64Audio || base64Audio.trim() === '') {
+    throw new Error('Empty audio payload received.');
+  }
+
+  if (!geminiAi) {
+    throw new Error('Server configuration error: Gemini API credentials not available or client failed to initialize.');
   }
 
   try {
-    const buffer = Buffer.from(base64Audio, 'base64');
-    const audioFile = await toFile(buffer, 'audio.webm', { type: mimeType || 'audio/webm' });
-
-    // Step 1: Transcribe via NIM (assuming whisper API compatible endpoint)
-    let transcript = '';
-    try {
-      const transcription = await ai.audio.transcriptions.create({
-        file: audioFile,
-        model: NIM_AUDIO_MODEL,
-      });
-      transcript = transcription.text;
-    } catch (e) {
-      console.warn('NIM audio transcription failed, returning fallback transcript.', e);
-      transcript = 'Voice transcript captured. (Audio fallback)';
-    }
-
-    // Step 2: Translate & identify language via NIM chat
     const promptText = `
-The following is a verbatim native transcript of a patient.
-Identify the language spoken and provide a high accuracy factual English translation for institutional clinical triage.
+The following is a medical/triage audio recording from a patient.
+Please provide:
+1. The verbatim native transcript.
+2. Identify the language spoken.
+3. A high accuracy factual English translation for institutional clinical triage.
 Format JSON:
 {
+  "transcript": "Verbatim transcript in native language",
   "language": "Detected language name",
   "translation": "Factual English translation",
   "confidence": "HIGH"
 }
-
-Transcript:
-"""
-${transcript}
-"""
 `;
 
-    const translationResponse = await ai.chat.completions.create({
-      model: NIM_TEXT_MODEL,
-      messages: [
-        { role: 'user', content: promptText }
+    const response = await geminiAi.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                data: base64Audio,
+                mimeType: mimeType || 'audio/webm',
+              }
+            },
+            { text: promptText }
+          ]
+        }
       ],
-      response_format: { type: 'json_object' },
-      max_tokens: 1000,
+      config: {
+        responseMimeType: 'application/json',
+      }
     });
 
-    const textOutput = translationResponse.choices[0]?.message?.content || '{}';
+    const textOutput = response.text || '{}';
     const res = JSON.parse(textOutput);
     
+    if (!res.transcript) {
+       throw new Error('Model returned an empty transcript.');
+    }
+
     return {
-      originalTranscript: transcript,
+      originalTranscript: res.transcript,
       detectedLanguage: res.language || 'Auto-detected',
-      translatedText: res.translation || transcript,
-      confidence: (res.confidence as any) || 'HIGH',
+      translatedText: res.translation || res.transcript || '',
+      confidence: res.confidence || 'HIGH',
     };
-  } catch (err) {
-    console.error('NIM audio processing error:', err);
-    return {
-      originalTranscript: 'Audio input received and processed.',
-      detectedLanguage: facilityLanguage === 'or' ? 'Odia' : facilityLanguage === 'hi' ? 'Hindi' : 'English',
-      translatedText: 'Patient reports acute fever and headache requiring clinical evaluation.',
-      confidence: 'MEDIUM',
-    };
+  } catch (err: any) {
+    console.error('Gemini multimodal audio processing error:', err);
+    throw new Error(`Audio processing failed: ${err.message || 'Upstream service error'}`);
   }
 }
 
@@ -243,31 +239,43 @@ export async function transcribeAudioOnly(
   base64Audio: string,
   mimeType: string
 ): Promise<{ transcript: string; detectedLanguage?: string; translation?: string }> {
-  if (!apiKey || apiKey === 'MY_GEMINI_API_KEY' || apiKey === 'MY_NIM_API_KEY') {
-    return {
-      transcript: 'Patient reports acute fever and headache requiring clinical evaluation.',
-      detectedLanguage: 'English',
-      translation: 'Patient reports acute fever and headache requiring clinical evaluation.',
-    };
+  if (!base64Audio || base64Audio.trim() === '') {
+    throw new Error('Empty audio payload received.');
+  }
+
+  if (!geminiAi) {
+    throw new Error('Server configuration error: Gemini API credentials not available or client failed to initialize.');
   }
 
   try {
-    const buffer = Buffer.from(base64Audio, 'base64');
-    const audioFile = await toFile(buffer, 'audio.webm', { type: mimeType || 'audio/webm' });
-
-    const transcription = await ai.audio.transcriptions.create({
-      file: audioFile,
-      model: NIM_AUDIO_MODEL,
+    const response = await geminiAi.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                data: base64Audio,
+                mimeType: mimeType || 'audio/webm',
+              }
+            },
+            { text: 'Please transcribe the following audio verbatim.' }
+          ]
+        }
+      ]
     });
 
+    if (!response || !response.text) {
+      throw new Error('Model returned an empty response.');
+    }
+
     return {
-      transcript: transcription.text.trim(),
+      transcript: response.text.trim(),
     };
-  } catch (err) {
-    console.error('NIM transcribe failed, using fallback:', err);
-    return {
-      transcript: 'Audio recording captured and transcribed.',
-    };
+  } catch (err: any) {
+    console.error('Gemini transcribe failed:', err);
+    throw new Error(`Audio transcription failed: ${err.message || 'Upstream service error'}`);
   }
 }
 

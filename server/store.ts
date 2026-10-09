@@ -4,8 +4,8 @@ import {
   PatientCase,
   AuditLogEntry,
   UserRole,
-} from '../src/types';
-import { evaluatePatientCaseSafety } from './safetyEngine';
+} from '../src/types/index.js';
+import { evaluatePatientCaseSafety } from './safetyEngine.js';
 
 const DATA_DIR = path.join(process.cwd(), '.data');
 const AUDIT_FILE = path.join(DATA_DIR, 'audit_logs.json');

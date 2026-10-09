@@ -1,4 +1,4 @@
-import { PatientCase, SafetyFlag, Contradiction, ReviewPriority } from '../src/types';
+import { PatientCase, SafetyFlag, Contradiction, ReviewPriority } from '../src/types/index.js';
 
 export interface EvaluationResult {
   safetyFlags: SafetyFlag[];

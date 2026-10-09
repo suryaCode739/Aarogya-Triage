@@ -1,16 +1,16 @@
 import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
-import { store } from './store';
+import { store } from './store.js';
 import {
   extractClinicalInformation,
   processMultimodalAudio,
   transcribeAudioOnly,
   processDocumentOCR,
   generateReferralDraftNote,
-} from './geminiService';
-import { evaluatePatientCaseSafety } from './safetyEngine';
-import { PatientCase, UserRole, SupportedLanguage } from '../src/types';
+} from './geminiService.js';
+import { evaluatePatientCaseSafety } from './safetyEngine.js';
+import { PatientCase, UserRole, SupportedLanguage } from '../src/types/index.js';
 
 dotenv.config();
 

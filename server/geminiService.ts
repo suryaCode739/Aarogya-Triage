@@ -9,7 +9,7 @@ import {
   FollowUpQuestion,
   ReferralDraft,
   SupportedLanguage,
-} from '../src/types';
+} from '../src/types/index.js';
 
 // Initialize OpenAI client strictly with NVIDIA NIM environment variable
 const apiKey = process.env.NIM_API_KEY || process.env.NVIDIA_API_KEY || process.env.GEMINI_API_KEY || '';

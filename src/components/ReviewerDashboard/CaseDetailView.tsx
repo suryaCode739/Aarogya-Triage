@@ -1337,14 +1337,17 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
         onClose={() => setSelectedFlagForModal(null)}
       />
 
-      <ReferralDraftModal
-        referral={currentReferral}
-        patientCase={patientCase}
-        onClose={() => setReferralModalOpen(false)}
-        onApproveReferral={(refId) => {
-          showFeedback(`Referral Ref ${refId} endorsed and approved by Medical Officer.`);
-        }}
-      />
+      {referralModalOpen && (
+        <ReferralDraftModal
+          referral={currentReferral}
+          patientCase={patientCase}
+          onClose={() => setReferralModalOpen(false)}
+          onApproveReferral={(refId) => {
+            showFeedback(`Referral Ref ${refId} endorsed and approved by Medical Officer.`);
+            setReferralModalOpen(false);
+          }}
+        />
+      )}
 
       <ContradictionModal
         contradiction={selectedContradiction}

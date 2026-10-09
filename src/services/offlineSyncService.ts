@@ -180,29 +180,25 @@ class OfflineSyncManager {
       try {
         pendingItem.sync_status = 'SYNCING';
 
-        // Concurrency Guard: Never silently overwrite a case
-        const remoteSnap = await getDoc(caseRef);
+        // Concurrency Guard: Best-effort check against Firebase
+        try {
+          const remoteSnap = await getDoc(caseRef);
+          if (remoteSnap.exists()) {
+            const remoteData = remoteSnap.data();
+            const remoteUpdated = new Date(remoteData.updatedAt || 0).getTime();
+            const localUpdated = new Date(pendingItem.updatedAt || 0).getTime();
 
-        if (remoteSnap.exists()) {
-          const remoteData = remoteSnap.data();
-          const remoteUpdated = new Date(remoteData.updatedAt || 0).getTime();
-          const localUpdated = new Date(pendingItem.updatedAt || 0).getTime();
-
-          // Remote is strictly newer than our local edit
-          if (remoteUpdated > localUpdated) {
-            conflictCount++;
-            pendingItem.sync_status = 'SYNC_FAILED';
-            pendingItem.remoteConflict = true;
-            pendingItem.syncError = `Remote case updated by another reviewer at ${new Date(remoteUpdated).toLocaleTimeString()}. Manual reconciliation required.`;
-            
-            // Record failure/conflict in audit log
-            await this.logSyncEvent(
-              pendingItem.id,
-              'FIREBASE_SYNC_CONFLICT_DETECTED',
-              `Conflict detected for Case ${pendingItem.id}: Remote document timestamp is newer. Overwrite prevented.`
-            );
-            continue;
+            if (remoteUpdated > localUpdated) {
+              conflictCount++;
+              pendingItem.sync_status = 'SYNC_FAILED';
+              pendingItem.remoteConflict = true;
+              pendingItem.syncError = `Remote case updated by another reviewer at ${new Date(remoteUpdated).toLocaleTimeString()}. Manual reconciliation required.`;
+              await this.logSyncEvent(pendingItem.id, 'FIREBASE_SYNC_CONFLICT_DETECTED', `Conflict detected for Case ${pendingItem.id}`);
+              continue;
+            }
           }
+        } catch (fbErr) {
+          console.warn('Firebase getDoc failed (user may be unauthenticated). Proceeding with Express backend sync.', fbErr);
         }
 
         // Prepare full or minimal payload
@@ -282,17 +278,23 @@ class OfflineSyncManager {
             }
           } catch (transcribeErr) {
             console.warn('Audio transcription during sync failed or timed out:', transcribeErr);
-            // Non-fatal: continue with payload upload, but do not delete audio if write fails
           }
         }
 
-        // Write to Cloud Firestore
-        await setDoc(caseRef, payloadToUpload);
+        let backendSuccess = false;
 
-        // Also update backend server store if reachable
+        // Write to Cloud Firestore (Best Effort)
         try {
-          await api.updateCase(pendingItem.id, payloadToUpload).catch(async () => {
-            await fetch(`/api/cases`, {
+          await setDoc(caseRef, payloadToUpload);
+          backendSuccess = true;
+        } catch (fbErr) {
+          console.warn('Firebase setDoc failed (user may be unauthenticated):', fbErr);
+        }
+
+        // Also update local Express backend server store
+        try {
+          await api.updateCase(pendingItem.id, payloadToUpload).then(() => { backendSuccess = true; }).catch(async () => {
+            const res = await fetch(`/api/cases`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -302,9 +304,16 @@ class OfflineSyncManager {
                 sex: payloadToUpload.patient?.sex,
                 consentGiven: true,
               }),
-            }).catch(() => {});
+            });
+            if (res.ok) backendSuccess = true;
           });
-        } catch {}
+        } catch (err) {
+          console.warn('Express backend update failed:', err);
+        }
+
+        if (!backendSuccess) {
+          throw new Error('Failed to synchronize to both Firebase and Express Backend (Network/Auth error).');
+        }
 
         // Remove local metadata after successful synchronization!
         this.removeLocalCase(pendingItem.id);

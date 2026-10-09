@@ -168,12 +168,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
 
-          {/* Transcribe Audio with gemini-3.5-transcribe */}
+          {/* Transcribe Audio with nemotron-omni-transcribe */}
           {onOpenTranscriber && (
             <button
               onClick={onOpenTranscriber}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-500/40 rounded-lg text-xs font-bold transition cursor-pointer"
-              title="Transcribe speech with model gemini-3.5-transcribe"
+              title="Transcribe speech with model nemotron-omni-transcribe"
             >
               <Mic className="w-3.5 h-3.5 text-teal-400" />
               <span className="hidden md:inline">Transcribe Voice</span>

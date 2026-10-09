@@ -250,7 +250,7 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
   // Retrieves the Blob directly from IndexedDB rather than relying on stale blob: URLs
   const handleTranscribeAudioNow = async () => {
     if (!isEffectivelyOnline) {
-      setErrorMsg('Cannot transcribe: Device is offline. Reconnect to internet or disable offline simulation to use gemini-3.5-transcribe.');
+      setErrorMsg('Cannot transcribe: Device is offline. Reconnect to internet or disable offline simulation to use nemotron-omni-transcribe.');
       return;
     }
 
@@ -292,7 +292,7 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
       }
     } catch (e: any) {
       console.warn('Audio transcription error:', e);
-      setErrorMsg(e.message || 'Failed to transcribe audio with gemini-3.5-transcribe.');
+      setErrorMsg(e.message || 'Failed to transcribe audio with nemotron-omni-transcribe.');
     } finally {
       setIsTranscribingVoice(false);
     }
@@ -924,7 +924,7 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
                           className="px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-[11px] font-semibold flex items-center gap-1 transition shadow-sm"
                         >
                           <Sparkles className="w-3 h-3" />
-                          <span>Transcribe with Gemini</span>
+                          <span>Transcribe with NIM Omni</span>
                         </button>
                       )}
                     </div>
@@ -973,7 +973,7 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({
               {isTranscribingVoice && (
                 <div className="bg-slate-950 border border-teal-500/30 rounded-lg p-3 flex items-center justify-center gap-2 text-xs text-teal-300">
                   <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
-                  <span>Transcribing speech with model gemini-3.5-transcribe...</span>
+                  <span>Transcribing speech with model nemotron-omni-transcribe...</span>
                 </div>
               )}
 

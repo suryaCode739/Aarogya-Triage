@@ -152,7 +152,7 @@ export const AudioTranscriberModal: React.FC<AudioTranscriberModalProps> = ({
   const triggerTranscription = async (fallbackB64?: string, fallbackMime?: string) => {
     if (!effectiveOnlineStatus) {
       setOfflineNotice(
-        'Cloud transcription (gemini-3.5-transcribe) is unavailable while offline. Your voice recording is safely preserved in local IndexedDB storage.'
+        'Cloud transcription (nemotron-omni-transcribe) is unavailable while offline. Your voice recording is safely preserved in local IndexedDB storage.'
       );
       return;
     }
@@ -182,7 +182,7 @@ export const AudioTranscriberModal: React.FC<AudioTranscriberModalProps> = ({
       setTranscript(result.transcript);
     } catch (err: any) {
       console.error('Transcription failed:', err);
-      setErrorMsg(err.message || 'Failed to transcribe audio with gemini-3.5-transcribe.');
+      setErrorMsg(err.message || 'Failed to transcribe audio with nemotron-omni-transcribe.');
     } finally {
       setIsTranscribing(false);
     }
@@ -197,11 +197,11 @@ export const AudioTranscriberModal: React.FC<AudioTranscriberModalProps> = ({
 
     let customTranscript = '';
     if (sampleType === 'odia') {
-      customTranscript = 'ରୋଗୀଙ୍କୁ ୩ ଦିନ ହେଲା ପ୍ରବଳ ଜ୍ୱର, ମୁଣ୍ଡବିନ୍ଧା ଏବଂ ବାନ୍ତି ହେଉଛି। (Sample Odia Transcription via gemini-3.5-transcribe)';
+      customTranscript = 'ରୋଗୀଙ୍କୁ ୩ ଦିନ ହେଲା ପ୍ରବଳ ଜ୍ୱର, ମୁଣ୍ଡବିନ୍ଧା ଏବଂ ବାନ୍ତି ହେଉଛି। (Sample Odia Transcription via nemotron-omni-transcribe)';
     } else if (sampleType === 'hindi') {
-      customTranscript = 'मरीज को तीन दिन से तेज बुखार है, सर में दर्द और दो बार उल्टी हुई है। (Sample Hindi Transcription via gemini-3.5-transcribe)';
+      customTranscript = 'मरीज को तीन दिन से तेज बुखार है, सर में दर्द और दो बार उल्टी हुई है। (Sample Hindi Transcription via nemotron-omni-transcribe)';
     } else {
-      customTranscript = 'Patient has continuous high-grade fever for 3 days, severe headache, and vomiting. (Sample English Transcription via gemini-3.5-transcribe)';
+      customTranscript = 'Patient has continuous high-grade fever for 3 days, severe headache, and vomiting. (Sample English Transcription via nemotron-omni-transcribe)';
     }
 
     if (!effectiveOnlineStatus) {
@@ -242,10 +242,10 @@ export const AudioTranscriberModal: React.FC<AudioTranscriberModalProps> = ({
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-white">Live Microphone Audio Transcriber</h3>
                 <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-mono text-[10px] font-bold border border-teal-500/30">
-                  gemini-3.5-transcribe
+                  nemotron-omni-transcribe
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Speech-to-text powered by model gemini-3.5-transcribe</p>
+              <p className="text-xs text-slate-400">Speech-to-text powered by model nemotron-omni-transcribe</p>
             </div>
           </div>
           <button
@@ -319,7 +319,7 @@ export const AudioTranscriberModal: React.FC<AudioTranscriberModalProps> = ({
                       className="px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-[11px] font-semibold flex items-center gap-1 transition shadow-sm"
                     >
                       <Sparkles className="w-3 h-3" />
-                      <span>Transcribe with Gemini</span>
+                      <span>Transcribe with NIM Omni</span>
                     </button>
                   )}
                 </div>
@@ -393,7 +393,7 @@ export const AudioTranscriberModal: React.FC<AudioTranscriberModalProps> = ({
               {isTranscribing ? (
                 <div className="flex items-center justify-center py-6 text-teal-400 gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Transcribing audio with gemini-3.5-transcribe...</span>
+                  <span>Transcribing audio with nemotron-omni-transcribe...</span>
                 </div>
               ) : (
                 <textarea
@@ -415,7 +415,7 @@ export const AudioTranscriberModal: React.FC<AudioTranscriberModalProps> = ({
         {/* Footer */}
         <div className="bg-slate-950/80 border-t border-slate-800 px-5 py-3 flex items-center justify-between">
           <span className="text-[11px] text-slate-400 font-mono">
-            Model: gemini-3.5-transcribe
+            Model: nemotron-omni-transcribe
           </span>
           <div className="flex items-center gap-2">
             {(transcript || audioBlobUrl) && onInsertIntoIntake && (

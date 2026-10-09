@@ -141,7 +141,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
       }
     } catch (e: any) {
       console.error('Failed to transcribe stored audio:', e);
-      setTranscribeError(e.message || 'Failed to transcribe audio with gemini-3.5-transcribe.');
+      setTranscribeError(e.message || 'Failed to transcribe audio with nemotron-omni-transcribe.');
     } finally {
       setIsTranscribingAudio(false);
     }
@@ -712,7 +712,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                         className="px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded text-[11px] font-semibold flex items-center gap-1 transition shadow-sm"
                       >
                         <Sparkles className="w-3 h-3" />
-                        <span>Transcribe with Gemini</span>
+                        <span>Transcribe with NIM Omni</span>
                       </button>
                     )}
                   </div>
@@ -720,7 +720,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                   {isTranscribingAudio && (
                     <div className="flex items-center gap-2 text-[11px] text-teal-300">
                       <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400" />
-                      <span>Transcribing audio using gemini-3.5-transcribe...</span>
+                      <span>Transcribing audio using nemotron-omni-transcribe...</span>
                     </div>
                   )}
                   {transcribeError && (

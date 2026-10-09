@@ -110,7 +110,7 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
             }`}
           >
             {effectiveOnlineStatus
-              ? 'Real-time multimodal speech transcription (gemini-3.5-transcribe), report OCR, and cloud sync are operational.'
+              ? 'Real-time multimodal speech transcription (nemotron-omni-transcribe), report OCR, and cloud sync are operational.'
               : 'Low-connectivity area mode: Health workers can continue patient intake. Deterministic urgency rules remain functional locally, and cases sync once connection is restored.'}
           </div>
 

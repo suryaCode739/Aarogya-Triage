@@ -1,7 +1,6 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 import OpenAI, { toFile } from 'openai';
-import { GoogleGenAI } from '@google/genai';
 import {
   PatientCase,
   Symptom,
@@ -21,10 +20,7 @@ const ai = new OpenAI({
 
 const NIM_TEXT_MODEL = process.env.NIM_TEXT_MODEL || 'meta/llama-3.1-70b-instruct';
 const NIM_VISION_MODEL = process.env.NIM_VISION_MODEL || 'meta/llama-3.2-90b-vision-instruct';
-const NIM_AUDIO_MODEL = process.env.NIM_AUDIO_MODEL || 'openai/whisper-large-v3';
-
-const geminiApiKey = process.env.GEMINI_API_KEY || apiKey;
-const geminiAi = geminiApiKey && geminiApiKey !== 'MY_GEMINI_API_KEY' ? new GoogleGenAI({ apiKey: geminiApiKey }) : null;
+const NIM_AUDIO_MODEL = 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning';
 
 const SYSTEM_HEALTHCARE_POLICY = `
 SYSTEM ROLE:
@@ -175,8 +171,8 @@ export async function processMultimodalAudio(
     throw new Error('Empty audio payload received.');
   }
 
-  if (!geminiAi) {
-    throw new Error('Server configuration error: Gemini API credentials not available or client failed to initialize.');
+  if (!apiKey || apiKey === 'MY_NIM_API_KEY') {
+    throw new Error('Server configuration error: NIM API credentials not available.');
   }
 
   try {
@@ -195,28 +191,26 @@ Format JSON:
 }
 `;
 
-    const response = await geminiAi.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [
+    const response = await ai.chat.completions.create({
+      model: NIM_AUDIO_MODEL,
+      messages: [
         {
           role: 'user',
-          parts: [
+          content: [
+            { type: 'text', text: promptText },
             {
-              inlineData: {
-                data: base64Audio,
-                mimeType: mimeType || 'audio/webm',
+              type: 'audio_url',
+              audio_url: {
+                url: `data:${mimeType || 'audio/webm'};base64,${base64Audio}`
               }
-            },
-            { text: promptText }
-          ]
+            }
+          ] as any
         }
       ],
-      config: {
-        responseMimeType: 'application/json',
-      }
+      response_format: { type: 'json_object' },
     });
 
-    const textOutput = response.text || '{}';
+    const textOutput = response.choices[0]?.message?.content || '{}';
     const res = JSON.parse(textOutput);
     
     if (!res.transcript) {
@@ -230,7 +224,7 @@ Format JSON:
       confidence: res.confidence || 'HIGH',
     };
   } catch (err: any) {
-    console.error('Gemini multimodal audio processing error:', err);
+    console.error('NIM multimodal audio processing error:', err);
     throw new Error(`Audio processing failed: ${err.message || 'Upstream service error'}`);
   }
 }
@@ -243,38 +237,39 @@ export async function transcribeAudioOnly(
     throw new Error('Empty audio payload received.');
   }
 
-  if (!geminiAi) {
-    throw new Error('Server configuration error: Gemini API credentials not available or client failed to initialize.');
+  if (!apiKey || apiKey === 'MY_NIM_API_KEY') {
+    throw new Error('Server configuration error: NIM API credentials not available.');
   }
 
   try {
-    const response = await geminiAi.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [
+    const response = await ai.chat.completions.create({
+      model: NIM_AUDIO_MODEL,
+      messages: [
         {
           role: 'user',
-          parts: [
+          content: [
+            { type: 'text', text: 'Please transcribe the following audio verbatim.' },
             {
-              inlineData: {
-                data: base64Audio,
-                mimeType: mimeType || 'audio/webm',
+              type: 'audio_url',
+              audio_url: {
+                url: `data:${mimeType || 'audio/webm'};base64,${base64Audio}`
               }
-            },
-            { text: 'Please transcribe the following audio verbatim.' }
-          ]
+            }
+          ] as any
         }
       ]
     });
 
-    if (!response || !response.text) {
+    const text = response.choices[0]?.message?.content;
+    if (!text) {
       throw new Error('Model returned an empty response.');
     }
 
     return {
-      transcript: response.text.trim(),
+      transcript: text.trim(),
     };
   } catch (err: any) {
-    console.error('Gemini transcribe failed:', err);
+    console.error('NIM transcribe failed:', err);
     throw new Error(`Audio transcription failed: ${err.message || 'Upstream service error'}`);
   }
 }

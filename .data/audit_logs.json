@@ -1,0 +1,18 @@
+[
+  {
+    "id": "LOG_1791552769635_5jyb8",
+    "clientEventId": "LOG_1791552769635_5jyb8",
+    "timestamp": "2026-10-09T13:32:49.635Z",
+    "createdAt": "2026-10-09T13:32:49.635Z",
+    "caseId": "SYSTEM",
+    "userRole": "ADMIN",
+    "actorId": "SYSTEM_ADMIN",
+    "userId": "SYSTEM_ADMIN",
+    "action": "SYSTEM_BOOTSTRAP",
+    "details": "Synthetic demonstration datasets initialized (Case A Routine, Case B Missing Info, Case C Critical Dengue Signal).",
+    "origin": "ONLINE",
+    "syncStatus": "SYNCED",
+    "syncedAt": "2026-10-09T13:32:49.635Z",
+    "retryCount": 0
+  }
+]

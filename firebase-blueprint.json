@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated healthcare worker or medical reviewer profile",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth user identifier"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Healthcare worker Google email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Healthcare worker full name"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar URL"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["PATIENT_WORKER", "REVIEWER", "ADMIN"],
+          "description": "Clinical role in healthcare facility"
+        },
+        "facility": {
+          "type": "string",
+          "description": "Assigned health facility or PHC"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account registration timestamp"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "PatientCase": {
+      "title": "PatientCase",
+      "description": "Structured clinical triage case with symptoms, vitals, labs, and safety flags",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique clinical case ID (e.g. PT-101)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "language": {
+          "type": "string"
+        },
+        "facility": {
+          "type": "string"
+        },
+        "chief_complaint": {
+          "type": "string"
+        },
+        "review_priority": {
+          "type": "string",
+          "enum": ["ROUTINE", "PRIORITY", "URGENT"]
+        },
+        "case_status": {
+          "type": "string",
+          "enum": ["WAITING", "IN_REVIEW", "REVIEWED", "ESCALATED", "REFERRED"]
+        },
+        "createdBy": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "review_priority", "case_status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Stores user profiles for authenticated healthcare workers"
+    },
+    "/cases/{caseId}": {
+      "schema": {
+        "$ref": "#/entities/PatientCase"
+      },
+      "description": "Stores clinical triage cases and structured patient records"
+    }
+  }
+}

@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net - Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 200 &&
+             (!('role' in data) || data.role in ['PATIENT_WORKER', 'REVIEWER', 'ADMIN']);
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function hasUserDoc() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isClinicalRole() {
+      return isSignedIn() &&
+             hasUserDoc() &&
+             getUserRole() in ['PATIENT_WORKER', 'REVIEWER', 'ADMIN'];
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+             hasUserDoc() &&
+             getUserRole() == 'ADMIN';
+    }
+
+    function isValidCase(data) {
+      return data.id is string && data.id.size() <= 64 &&
+             data.review_priority in ['ROUTINE', 'PRIORITY', 'URGENT'] &&
+             data.case_status in ['WAITING', 'IN_REVIEW', 'REVIEWED', 'ESCALATED', 'REFERRED'];
+    }
+
+    // Narrowly scoped health check probe for authenticated clients
+    match /test/connection {
+      allow get: if isSignedIn();
+    }
+
+    // User profiles collection
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(userId) && isValidUser(incoming());
+      allow update: if isSignedIn() && isOwner(userId) && isValidUser(incoming());
+      allow delete: if false;
+    }
+
+    // Clinical Triage Cases collection
+    match /cases/{caseId} {
+      allow get, list: if isClinicalRole();
+      allow create, update: if isClinicalRole() &&
+                               isValidId(caseId) &&
+                               incoming().id == caseId &&
+                               isValidCase(incoming());
+      allow delete: if isAdmin();
+    }
+  }
+}

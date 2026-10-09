@@ -1,0 +1,7 @@
+{
+  "name": "AarogyaTriage - Multimodal Healthcare Triage Assistant",
+  "description": "Multimodal, non-diagnostic healthcare triage assistant for government hospitals and institutional health facilities. Human-in-the-loop clinical information organization, OCR, voice translation, and safety signal detection.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

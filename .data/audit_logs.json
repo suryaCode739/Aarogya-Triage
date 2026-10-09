@@ -1,25 +1,9 @@
 [
   {
-    "id": "LOG_1791562825748_001z9",
-    "clientEventId": "LOG_1791562825748_001z9",
-    "timestamp": "2026-10-09T16:20:25.748Z",
-    "createdAt": "2026-10-09T16:20:25.748Z",
-    "caseId": "PT-101",
-    "userRole": "REVIEWER",
-    "actorId": "DR_MED_OFFICER",
-    "userId": "DR_MED_OFFICER",
-    "action": "AI-assisted handoff summary drafted successfully using available evidence.",
-    "details": "Case PT-101 updated. Priority: URGENT, Status: WAITING",
-    "origin": "ONLINE",
-    "syncStatus": "SYNCED",
-    "syncedAt": "2026-10-09T16:20:25.748Z",
-    "retryCount": 0
-  },
-  {
-    "id": "LOG_1791562813569_sksw0",
-    "clientEventId": "LOG_1791562813569_sksw0",
-    "timestamp": "2026-10-09T16:20:13.569Z",
-    "createdAt": "2026-10-09T16:20:13.569Z",
+    "id": "LOG_1791565197770_628kp",
+    "clientEventId": "LOG_1791565197770_628kp",
+    "timestamp": "2026-10-09T16:59:57.770Z",
+    "createdAt": "2026-10-09T16:59:57.770Z",
     "caseId": "SYSTEM",
     "userRole": "ADMIN",
     "actorId": "SYSTEM_ADMIN",
@@ -28,7 +12,7 @@
     "details": "Synthetic demonstration datasets initialized (Case A Routine, Case B Missing Info, Case C Critical Dengue Signal).",
     "origin": "ONLINE",
     "syncStatus": "SYNCED",
-    "syncedAt": "2026-10-09T16:20:13.569Z",
+    "syncedAt": "2026-10-09T16:59:57.770Z",
     "retryCount": 0
   }
 ]

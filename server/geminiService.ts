@@ -825,7 +825,7 @@ export async function processMultimodalAudio(
     `;
 
     const response = await genai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: [
         {
           role: 'user',
@@ -873,7 +873,7 @@ export async function transcribeAudioOnly(
 
   try {
     const response = await genai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: [
         {
           role: 'user',

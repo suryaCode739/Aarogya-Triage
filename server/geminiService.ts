@@ -18,7 +18,10 @@ const ai = new OpenAI({
   baseURL: 'https://integrate.api.nvidia.com/v1',
 });
 
-const NIM_TEXT_MODEL = process.env.NIM_TEXT_MODEL || 'meta/llama-3.1-70b-instruct';
+let NIM_TEXT_MODEL = process.env.NIM_TEXT_MODEL || 'meta/llama2-70b';
+if (NIM_TEXT_MODEL === 'meta/llama-3.1-70b-instruct' || NIM_TEXT_MODEL === 'nvidia/llama-3.1-nemotron-70b-instruct' || NIM_TEXT_MODEL === 'mistralai/mistral-large-2-instruct') {
+  NIM_TEXT_MODEL = 'meta/llama2-70b';
+}
 const NIM_VISION_MODEL = process.env.NIM_VISION_MODEL || 'meta/llama-3.2-90b-vision-instruct';
 const NIM_AUDIO_MODEL = 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning';
 
@@ -725,6 +728,25 @@ Generate a concise handoff draft with the following JSON structure:
 }
 `;
 
+  // Deterministic fallback in case of NVIDIA API failure
+  const fallbackDraft: ReferralDraft = {
+    referralId: `HANDOFF-${Date.now()}`,
+    generatedAt: new Date().toISOString(),
+    facilityFrom: caseData.facility || 'Unknown Facility',
+    facilityTo: 'Receiving Facility / Specialist',
+    patientId: caseData.patient?.syntheticName || 'Unknown Patient',
+    presentingComplaint: caseData.chief_complaint || 'Unspecified complaint',
+    relevantSymptoms: caseData.symptoms.map(s => `${s.name} (${s.severity})`),
+    timelineSummary: caseData.timeline?.map(t => `${t.timeframe}: ${t.description}`).join(' -> ') || 'No timeline recorded',
+    vitalsSummary: caseData.vitals ? `Temp: ${caseData.vitals.temperature?.value || 'N/A'}, BP: ${caseData.vitals.blood_pressure?.systolic || 'N/A'}/${caseData.vitals.blood_pressure?.diastolic || 'N/A'}` : 'No vitals',
+    investigationsSummary: caseData.extracted_labs?.map(l => `${l.test}: ${l.value} ${l.unit}`).join(', ') || 'No labs attached',
+    safetySignals: caseData.safety_flags?.map(f => f.flag) || [],
+    missingInformation: caseData.missing_information || [],
+    reasonForReferral: caseData.safety_flags?.length ? 'Critical safety flag identified requiring higher-level care.' : 'Specialist consultation required.',
+    supportingDocuments: caseData.documents?.map(d => d.name) || [],
+    status: 'DRAFT',
+  };
+
   try {
     const response = await ai.chat.completions.create({
       model: NIM_TEXT_MODEL,
@@ -737,24 +759,24 @@ Generate a concise handoff draft with the following JSON structure:
     const res = JSON.parse(textOutput);
 
     return {
-      referralId: `HANDOFF-${Date.now()}`,
-      generatedAt: new Date().toISOString(),
-      facilityFrom: caseData.facility || 'Unknown Facility',
-      facilityTo: 'Receiving Facility / Specialist',
-      patientId: caseData.patient?.syntheticName || 'Unknown Patient',
-      presentingComplaint: res.presentingComplaint || caseData.chief_complaint || '',
-      relevantSymptoms: res.relevantSymptoms || [],
-      timelineSummary: res.timelineSummary || '',
-      vitalsSummary: res.vitalsSummary || '',
-      investigationsSummary: res.investigationsSummary || '',
-      safetySignals: res.safetySignals || [],
-      missingInformation: res.missingInformation || [],
-      reasonForReferral: res.reasonForReferral || '',
-      supportingDocuments: [],
+      referralId: fallbackDraft.referralId,
+      generatedAt: fallbackDraft.generatedAt,
+      facilityFrom: fallbackDraft.facilityFrom,
+      facilityTo: fallbackDraft.facilityTo,
+      patientId: fallbackDraft.patientId,
+      presentingComplaint: res.presentingComplaint || fallbackDraft.presentingComplaint,
+      relevantSymptoms: res.relevantSymptoms || fallbackDraft.relevantSymptoms,
+      timelineSummary: res.timelineSummary || fallbackDraft.timelineSummary,
+      vitalsSummary: res.vitalsSummary || fallbackDraft.vitalsSummary,
+      investigationsSummary: res.investigationsSummary || fallbackDraft.investigationsSummary,
+      safetySignals: res.safetySignals || fallbackDraft.safetySignals,
+      missingInformation: res.missingInformation || fallbackDraft.missingInformation,
+      reasonForReferral: res.reasonForReferral || fallbackDraft.reasonForReferral,
+      supportingDocuments: fallbackDraft.supportingDocuments,
       status: 'DRAFT',
     };
   } catch (err: any) {
-    console.error('NIM handoff summary generation error:', err);
-    throw new Error(`Handoff generation failed: ${err.message || 'Upstream service error'}`);
+    console.warn('NIM handoff summary API failed, using deterministic fallback draft. Error:', err.message);
+    return fallbackDraft;
   }
 }
